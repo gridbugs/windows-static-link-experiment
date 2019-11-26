@@ -1,0 +1,39 @@
+version: '{build}'
+clone_depth: 1
+environment:
+  matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      HOST: x86_64-pc-windows-msvc
+      TARGET: x86_64-pc-windows-msvc
+      BIN_NAME: bin-windows-x86_64
+for:
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+          TARGET: x86_64-pc-windows-msvc
+    install:
+      - cmd: >-
+          appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+
+          rustup-init -yv --default-toolchain stable --default-host %HOST%
+
+          set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+
+          rustc -V
+
+          cargo -V
+
+    build_script:
+      - cmd: >-
+          cargo rustc  -- -Ctarget-feature=+crt-static
+
+          set FULL_NAME=%BIN_NAME%-%APPVEYOR_REPO_BRANCH%
+
+          mkdir tmp
+
+          mkdir tmp\%FULL_NAME%
+
+          copy target\debug\windows-static-link-experiment.exe tmp\%FULL_NAME%\%BIN_NAME%.exe
+
+          powershell.exe -nologo -noprofile -command "& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('tmp', '%FULL_NAME%.zip'); }"
